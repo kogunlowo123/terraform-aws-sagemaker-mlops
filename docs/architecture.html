@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>terraform-aws-sagemaker-mlops | Architecture</title>
+<style>
+:root{--ink:#0b0c0b;--ink2:#141514;--ink3:#1e1f1e;--border:#2a2b2a;--text:#c8c9c8;--text2:#9a9b9a;--accent:#c8420a;--accent2:#e05a1a;--green:#2ecc71;--blue:#3498db;--yellow:#f1c40f;--red:#e74c3c;--purple:#9b59b6;--mono:"SF Mono","Fira Code","Fira Mono","Roboto Mono",monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--ink);color:var(--text);font-family:var(--mono);font-size:14px;line-height:1.7}
+a{color:var(--accent2);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+header{border-bottom:1px solid var(--border);padding:32px 0}
+header h1{font-size:28px;color:#fff;font-weight:700}
+header h1 span{color:var(--accent)}
+header p.sub{color:var(--text2);margin-top:6px;font-size:13px}
+.badge{display:inline-block;padding:2px 10px;border-radius:3px;font-size:11px;font-weight:600;margin-right:6px;margin-top:8px}
+.badge-tf{background:#623ce4;color:#fff}.badge-aws{background:#ff9900;color:#111}.badge-mit{background:#2ecc71;color:#111}
+section{padding:40px 0;border-bottom:1px solid var(--border)}
+section:last-of-type{border-bottom:none}
+h2{font-size:20px;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:4px;height:20px;background:var(--accent);display:inline-block;border-radius:2px}
+h3{font-size:15px;color:var(--accent2);margin:16px 0 10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.card{background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:20px}
+.card h4{color:#fff;font-size:14px;margin-bottom:6px}
+.card p{color:var(--text2);font-size:12px}
+.card .num{font-size:24px;color:var(--accent);font-weight:700}
+.arch-diagram{background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:32px;overflow-x:auto;margin:16px 0}
+.flow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center}
+.flow .box{background:var(--ink3);border:1px solid var(--border);border-radius:4px;padding:12px 18px;text-align:center;min-width:130px;font-size:12px;color:#fff;position:relative}
+.flow .box.primary{border-color:var(--accent);background:rgba(200,66,10,0.1)}
+.flow .box.green{border-color:var(--green);background:rgba(46,204,113,0.06)}
+.flow .box.blue{border-color:var(--blue);background:rgba(52,152,219,0.06)}
+.flow .box.purple{border-color:var(--purple);background:rgba(155,89,182,0.06)}
+.flow .box.yellow{border-color:var(--yellow);background:rgba(241,196,15,0.06)}
+.flow .box small{display:block;color:var(--text2);font-size:10px;margin-top:4px}
+.flow .arrow{color:var(--accent);font-size:18px;font-weight:700}
+.flow .arrow-down{color:var(--accent);font-size:18px;writing-mode:vertical-rl}
+.flow-col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.flow-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{text-align:left;padding:10px 12px;background:var(--ink2);color:var(--accent2);border:1px solid var(--border);font-weight:600}
+td{padding:10px 12px;border:1px solid var(--border);color:var(--text)}
+tr:hover td{background:var(--ink2)}
+code{background:var(--ink3);padding:2px 6px;border-radius:3px;font-size:12px;color:var(--accent2)}
+pre{background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:16px;overflow-x:auto;font-size:12px;line-height:1.6;margin:12px 0}
+.checklist{list-style:none;padding:0}
+.checklist li{padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px}
+.checklist li::before{content:"[ ]";color:var(--accent);font-weight:700;font-size:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.grid-2,.cards{grid-template-columns:1fr}.flow{flex-direction:column}}
+footer{border-top:1px solid var(--border);padding:24px 0;text-align:center;color:var(--text2);font-size:11px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+<h1><span>//</span> terraform-aws-sagemaker-mlops</h1>
+<p class="sub">Comprehensive AWS SageMaker MLOps platform with model registry, pipelines, endpoints, feature store, experiments, and model monitoring.</p>
+<div>
+<span class="badge badge-tf">Terraform &ge; 1.5.0</span>
+<span class="badge badge-aws">AWS &ge; 5.0</span>
+<span class="badge badge-mit">MIT License</span>
+</div>
+</header>
+
+<!-- Executive Summary -->
+<section>
+<h2>Executive Summary</h2>
+<p>This module provisions a complete end-to-end MLOps platform on AWS SageMaker. It creates a SageMaker Domain with user profiles, model registry for versioning and approval workflows, ML pipelines for orchestration, multi-type inference endpoints (real-time, serverless, async), feature store with online/offline storage, experiment tracking, and model monitoring schedules. An IAM execution role is optionally created with least-privilege policies. All resources are tagged consistently and support VPC-only network isolation.</p>
+</section>
+
+<!-- Overview Cards -->
+<section>
+<h2>Overview</h2>
+<div class="cards">
+<div class="card"><div class="num">8</div><h4>Core Components</h4><p>Domain, User Profiles, Model Registry, Pipelines, Endpoints, Feature Store, Experiments, Monitoring</p></div>
+<div class="card"><div class="num">3</div><h4>Endpoint Types</h4><p>Real-time, Serverless, and Async inference endpoints with data capture</p></div>
+<div class="card"><div class="num">12</div><h4>Resource Types</h4><p>SageMaker Domain, User Profile, Model Package Group, Pipeline, Endpoint Config, Endpoint, Feature Group, Experiment, Monitoring Schedule, IAM Role, IAM Policy, IAM Policy Document</p></div>
+<div class="card"><div class="num">22</div><h4>Input Variables</h4><p>Full control over domain settings, user profiles, pipelines, endpoints, feature store, experiments, and monitoring</p></div>
+</div>
+</section>
+
+<!-- Architecture Diagram -->
+<section>
+<h2>Architecture Diagram</h2>
+<div class="arch-diagram">
+<div class="flow-col">
+<div class="flow-row">
+<div class="box blue">IAM Execution Role<small>aws_iam_role</small></div>
+</div>
+<div class="arrow-down">&darr;</div>
+<div class="flow-row">
+<div class="box primary">SageMaker Domain<small>aws_sagemaker_domain</small></div>
+</div>
+<div class="arrow-down">&darr;</div>
+<div class="flow-row">
+<div class="box blue">User Profiles<small>aws_sagemaker_user_profile</small></div>
+<div class="box green">Model Registry<small>aws_sagemaker_model_package_group</small></div>
+<div class="box purple">Pipelines<small>aws_sagemaker_pipeline</small></div>
+</div>
+<div class="arrow-down">&darr;</div>
+<div class="flow-row">
+<div class="box primary">Real-time Endpoint<small>ml.m5.large</small></div>
+<div class="box primary">Serverless Endpoint<small>max_concurrency: 5</small></div>
+<div class="box primary">Async Endpoint<small>SNS notifications</small></div>
+</div>
+<div class="arrow-down">&darr;</div>
+<div class="flow-row">
+<div class="box yellow">Feature Store<small>Online + Offline</small></div>
+<div class="box green">Experiments<small>Tracking &amp; Trials</small></div>
+<div class="box">Model Monitoring<small>Data Quality Schedules</small></div>
+</div>
+<div class="arrow-down">&darr;</div>
+<div class="flow-row">
+<div class="box">S3 Bucket<small>Data Capture / Offline Store / Monitor Output</small></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Component Breakdown -->
+<section>
+<h2>Component Breakdown</h2>
+<table>
+<tr><th>Component</th><th>Resource</th><th>Purpose</th></tr>
+<tr><td>SageMaker Domain</td><td><code>aws_sagemaker_domain</code></td><td>Managed Studio environment with IAM/SSO auth, VPC isolation</td></tr>
+<tr><td>User Profiles</td><td><code>aws_sagemaker_user_profile</code></td><td>Multi-user support with per-user execution roles</td></tr>
+<tr><td>Model Registry</td><td><code>aws_sagemaker_model_package_group</code></td><td>Model versioning and approval workflows</td></tr>
+<tr><td>Pipelines</td><td><code>aws_sagemaker_pipeline</code></td><td>ML pipeline orchestration (inline or S3-based definitions)</td></tr>
+<tr><td>Real-time Endpoints</td><td><code>aws_sagemaker_endpoint_configuration</code> + <code>endpoint</code></td><td>Low-latency inference with data capture</td></tr>
+<tr><td>Serverless Endpoints</td><td><code>aws_sagemaker_endpoint_configuration</code> + <code>endpoint</code></td><td>Auto-scaling, pay-per-request inference</td></tr>
+<tr><td>Async Endpoints</td><td><code>aws_sagemaker_endpoint_configuration</code> + <code>endpoint</code></td><td>Batch-style inference with SNS notifications</td></tr>
+<tr><td>Feature Store</td><td><code>aws_sagemaker_feature_group</code></td><td>Online + offline feature storage for ML training and inference</td></tr>
+<tr><td>Experiments</td><td><code>aws_sagemaker_experiment</code></td><td>Experiment tracking and trial components</td></tr>
+<tr><td>Model Monitoring</td><td><code>aws_sagemaker_monitoring_schedule</code></td><td>Data quality monitoring on cron schedules</td></tr>
+<tr><td>IAM Role</td><td><code>aws_iam_role</code> + <code>aws_iam_role_policy</code></td><td>SageMaker execution role with least-privilege policies</td></tr>
+</table>
+</section>
+
+<!-- Data Flow -->
+<section>
+<h2>Data Flow</h2>
+<div class="arch-diagram">
+<div class="flow">
+<div class="box blue">Training Data (S3)</div>
+<div class="arrow">&rarr;</div>
+<div class="box purple">Pipeline</div>
+<div class="arrow">&rarr;</div>
+<div class="box green">Model Registry</div>
+<div class="arrow">&rarr;</div>
+<div class="box primary">Endpoint</div>
+<div class="arrow">&rarr;</div>
+<div class="box">Data Capture (S3)</div>
+<div class="arrow">&rarr;</div>
+<div class="box yellow">Monitoring</div>
+</div>
+</div>
+<p style="margin-top:12px;color:var(--text2);font-size:13px">Feature Store provides features at training time (offline) and inference time (online). Model Registry gates deployments via approval status. Monitoring detects data drift and feeds back into retraining pipelines.</p>
+</section>
+
+<!-- Security Controls -->
+<section>
+<h2>Security Controls</h2>
+<div class="grid-2">
+<div class="card"><h4>IAM Least Privilege</h4><p>Auto-provisioned execution role with scoped policies for S3, ECR, CloudWatch, and SageMaker APIs</p></div>
+<div class="card"><h4>VPC Network Isolation</h4><p>app_network_access_type supports VpcOnly mode to restrict all traffic to private subnets</p></div>
+<div class="card"><h4>Auth Mode</h4><p>IAM or SSO authentication with validation enforcement</p></div>
+<div class="card"><h4>Data Capture Encryption</h4><p>Endpoint data capture written to S3 with configurable KMS encryption</p></div>
+</div>
+</section>
+
+<!-- Industry Adaptation -->
+<section>
+<h2>Industry Adaptation</h2>
+<table>
+<tr><th>Industry</th><th>Configuration</th></tr>
+<tr><td>Healthcare / HIPAA</td><td>VpcOnly mode, KMS encryption on feature store, monitoring for data drift</td></tr>
+<tr><td>Financial Services</td><td>Model registry approval workflows, experiment audit trail, real-time endpoints with data capture</td></tr>
+<tr><td>Retail / E-Commerce</td><td>Serverless endpoints for variable traffic, feature store for recommendation features</td></tr>
+<tr><td>Manufacturing / IoT</td><td>Async endpoints for batch inference from sensor data, monitoring schedules for quality control</td></tr>
+</table>
+</section>
+
+<!-- Production Readiness Checklist -->
+<section>
+<h2>Production Readiness Checklist</h2>
+<ul class="checklist">
+<li>Set <code>app_network_access_type = "VpcOnly"</code> for network isolation</li>
+<li>Enable data capture on real-time endpoints for model monitoring</li>
+<li>Configure model monitoring schedules with baseline constraints</li>
+<li>Use separate execution roles per user profile in multi-tenant environments</li>
+<li>Store pipeline definitions in S3 for version control</li>
+<li>Enable offline store in Feature Store with S3 for historical data</li>
+<li>Set up SNS notifications on async endpoints for completion tracking</li>
+<li>Tag all resources with Environment, Team, and CostCenter</li>
+<li>Use model registry approval workflows before production deployment</li>
+<li>Enable CloudWatch alarms for endpoint invocation errors and latency</li>
+</ul>
+</section>
+
+<!-- Config Reference -->
+<section>
+<h2>Configuration Reference</h2>
+<h3>Required Variables</h3>
+<table>
+<tr><th>Variable</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>name</code></td><td>string</td><td>Name prefix for all resources</td></tr>
+<tr><td><code>vpc_id</code></td><td>string</td><td>VPC ID for the SageMaker domain</td></tr>
+<tr><td><code>subnet_ids</code></td><td>list(string)</td><td>Subnet IDs for the SageMaker domain</td></tr>
+</table>
+<h3>Key Optional Variables</h3>
+<table>
+<tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>create_domain</code></td><td>true</td><td>Whether to create the SageMaker domain</td></tr>
+<tr><td><code>auth_mode</code></td><td>"IAM"</td><td>Authentication mode (IAM or SSO)</td></tr>
+<tr><td><code>create_model_registry</code></td><td>true</td><td>Whether to create model package group</td></tr>
+<tr><td><code>create_feature_store</code></td><td>false</td><td>Whether to create feature store groups</td></tr>
+<tr><td><code>create_experiments</code></td><td>false</td><td>Whether to create experiment tracking</td></tr>
+<tr><td><code>create_model_monitoring</code></td><td>false</td><td>Whether to create monitoring schedules</td></tr>
+<tr><td><code>create_execution_role</code></td><td>true</td><td>Whether to create a default execution role</td></tr>
+</table>
+<h3>Key Outputs</h3>
+<table>
+<tr><th>Output</th><th>Description</th></tr>
+<tr><td><code>domain_id</code></td><td>The ID of the SageMaker domain</td></tr>
+<tr><td><code>domain_arn</code></td><td>The ARN of the SageMaker domain</td></tr>
+<tr><td><code>model_package_group_arn</code></td><td>ARN of the model package group</td></tr>
+<tr><td><code>pipeline_arns</code></td><td>Map of pipeline names to ARNs</td></tr>
+<tr><td><code>realtime_endpoint_arns</code></td><td>Map of real-time endpoint ARNs</td></tr>
+<tr><td><code>execution_role_arn</code></td><td>ARN of the SageMaker execution role</td></tr>
+</table>
+</section>
+
+<!-- Deployment -->
+<section>
+<h2>Deployment</h2>
+<pre>
+module "sagemaker_mlops" {
+  source = "path/to/terraform-aws-sagemaker-mlops"
+
+  name       = "my-ml-project"
+  vpc_id     = "vpc-0123456789abcdef0"
+  subnet_ids = ["subnet-abc", "subnet-def"]
+
+  user_profiles = {
+    data-scientist = {}
+  }
+
+  endpoints = {
+    inference = {
+      type       = "realtime"
+      model_name = "my-model"
+    }
+  }
+
+  tags = {
+    Environment = "dev"
+  }
+}
+</pre>
+<pre>
+terraform init
+terraform plan
+terraform apply
+</pre>
+</section>
+
+<!-- Links -->
+<section>
+<h2>Links</h2>
+<table>
+<tr><td><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html">AWS SageMaker Documentation</a></td></tr>
+<tr><td><a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sagemaker_domain">Terraform aws_sagemaker_domain</a></td></tr>
+<tr><td><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-registry.html">SageMaker Model Registry</a></td></tr>
+<tr><td><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/pipelines.html">SageMaker Pipelines</a></td></tr>
+<tr><td><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/feature-store.html">SageMaker Feature Store</a></td></tr>
+</table>
+</section>
+
+<footer>
+<p>terraform-aws-sagemaker-mlops | Architecture Documentation | Generated 2026-03-15</p>
+</footer>
+
+</div>
+</body>
+</html>
