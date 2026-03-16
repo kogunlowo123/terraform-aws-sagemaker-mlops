@@ -8,7 +8,7 @@ resource "aws_iam_role" "sagemaker" {
   name               = "${var.name}-sagemaker-execution"
   assume_role_policy = data.aws_iam_policy_document.sagemaker_assume_role[0].json
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy" "sagemaker" {
@@ -26,7 +26,7 @@ resource "aws_iam_role_policy" "sagemaker" {
 resource "aws_sagemaker_domain" "this" {
   count = var.create_domain ? 1 : 0
 
-  domain_name = local.domain_name
+  domain_name = var.domain_name != "" ? var.domain_name : "${var.name}-studio"
   auth_mode   = var.auth_mode
   vpc_id      = var.vpc_id
   subnet_ids  = var.subnet_ids
@@ -34,10 +34,10 @@ resource "aws_sagemaker_domain" "this" {
   app_network_access_type = var.app_network_access_type
 
   default_user_settings {
-    execution_role = local.execution_role_arn
+    execution_role = var.create_execution_role ? aws_iam_role.sagemaker[0].arn : var.default_execution_role_arn
   }
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
 ################################################################################
@@ -51,10 +51,10 @@ resource "aws_sagemaker_user_profile" "this" {
   user_profile_name = each.key
 
   user_settings {
-    execution_role = coalesce(each.value.execution_role_arn, local.execution_role_arn)
+    execution_role = coalesce(each.value.execution_role_arn, var.create_execution_role ? aws_iam_role.sagemaker[0].arn : var.default_execution_role_arn)
   }
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -64,10 +64,10 @@ resource "aws_sagemaker_user_profile" "this" {
 resource "aws_sagemaker_model_package_group" "this" {
   count = var.create_model_registry ? 1 : 0
 
-  model_package_group_name        = local.model_package_group_name
+  model_package_group_name        = var.model_package_group_name != "" ? var.model_package_group_name : "${var.name}-registry"
   model_package_group_description = var.model_package_group_description
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
 ################################################################################
@@ -92,7 +92,7 @@ resource "aws_sagemaker_pipeline" "this" {
     )) : null
   }
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -100,7 +100,7 @@ resource "aws_sagemaker_pipeline" "this" {
 ################################################################################
 
 resource "aws_sagemaker_endpoint_configuration" "realtime" {
-  for_each = local.realtime_endpoints
+  for_each = { for k, v in var.endpoints : k => v if v.type == "realtime" }
 
   name = "${var.name}-${each.key}-config"
 
@@ -130,7 +130,7 @@ resource "aws_sagemaker_endpoint_configuration" "realtime" {
     }
   }
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -138,7 +138,7 @@ resource "aws_sagemaker_endpoint_configuration" "realtime" {
 ################################################################################
 
 resource "aws_sagemaker_endpoint_configuration" "serverless" {
-  for_each = local.serverless_endpoints
+  for_each = { for k, v in var.endpoints : k => v if v.type == "serverless" }
 
   name = "${var.name}-${each.key}-config"
 
@@ -152,7 +152,7 @@ resource "aws_sagemaker_endpoint_configuration" "serverless" {
     }
   }
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -160,7 +160,7 @@ resource "aws_sagemaker_endpoint_configuration" "serverless" {
 ################################################################################
 
 resource "aws_sagemaker_endpoint_configuration" "async" {
-  for_each = local.async_endpoints
+  for_each = { for k, v in var.endpoints : k => v if v.type == "async" }
 
   name = "${var.name}-${each.key}-config"
 
@@ -186,7 +186,7 @@ resource "aws_sagemaker_endpoint_configuration" "async" {
     }
   }
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -194,30 +194,30 @@ resource "aws_sagemaker_endpoint_configuration" "async" {
 ################################################################################
 
 resource "aws_sagemaker_endpoint" "realtime" {
-  for_each = local.realtime_endpoints
+  for_each = { for k, v in var.endpoints : k => v if v.type == "realtime" }
 
   name                 = "${var.name}-${each.key}"
   endpoint_config_name = aws_sagemaker_endpoint_configuration.realtime[each.key].name
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 resource "aws_sagemaker_endpoint" "serverless" {
-  for_each = local.serverless_endpoints
+  for_each = { for k, v in var.endpoints : k => v if v.type == "serverless" }
 
   name                 = "${var.name}-${each.key}"
   endpoint_config_name = aws_sagemaker_endpoint_configuration.serverless[each.key].name
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 resource "aws_sagemaker_endpoint" "async" {
-  for_each = local.async_endpoints
+  for_each = { for k, v in var.endpoints : k => v if v.type == "async" }
 
   name                 = "${var.name}-${each.key}"
   endpoint_config_name = aws_sagemaker_endpoint_configuration.async[each.key].name
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -259,7 +259,7 @@ resource "aws_sagemaker_feature_group" "this" {
     }
   }
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -272,7 +272,7 @@ resource "aws_sagemaker_experiment" "this" {
   experiment_name = "${var.name}-${each.key}"
   description     = each.value.description
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
 
 ################################################################################
@@ -293,5 +293,5 @@ resource "aws_sagemaker_monitoring_schedule" "this" {
     }
   }
 
-  tags = merge(local.common_tags, each.value.tags)
+  tags = merge(var.tags, each.value.tags)
 }
