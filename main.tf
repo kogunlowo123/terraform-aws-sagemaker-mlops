@@ -266,13 +266,45 @@ resource "aws_sagemaker_feature_group" "this" {
 # Experiments
 ################################################################################
 
-resource "aws_sagemaker_experiment" "this" {
+# The AWS provider has no native resource for SageMaker Experiments, so they are
+# managed through the AWS CLI (requires `aws` and `bash` on the machine running
+# Terraform, with credentials for the target account).
+resource "terraform_data" "experiment" {
   for_each = var.create_experiments ? var.experiments : {}
 
-  experiment_name = "${var.name}-${each.key}"
-  description     = each.value.description
+  input = {
+    name        = "${var.name}-${each.key}"
+    description = each.value.description
+    region      = data.aws_region.current.name
+    tags_json = jsonencode([
+      for k, v in merge(var.tags, each.value.tags) : { Key = k, Value = v }
+    ])
+  }
 
-  tags = merge(var.tags, each.value.tags)
+  provisioner "local-exec" {
+    interpreter = ["bash", "-c"]
+    command     = <<-EOT
+      aws sagemaker describe-experiment --region "$EXP_REGION" --experiment-name "$EXP_NAME" >/dev/null 2>&1 ||       aws sagemaker create-experiment --region "$EXP_REGION" --experiment-name "$EXP_NAME"         --description "$EXP_DESCRIPTION" --tags "$EXP_TAGS"
+    EOT
+
+    environment = {
+      EXP_NAME        = self.input.name
+      EXP_DESCRIPTION = self.input.description
+      EXP_REGION      = self.input.region
+      EXP_TAGS        = self.input.tags_json
+    }
+  }
+
+  provisioner "local-exec" {
+    when        = destroy
+    interpreter = ["bash", "-c"]
+    command     = "aws sagemaker delete-experiment --region \"$EXP_REGION\" --experiment-name \"$EXP_NAME\""
+
+    environment = {
+      EXP_NAME   = self.input.name
+      EXP_REGION = self.input.region
+    }
+  }
 }
 
 ################################################################################

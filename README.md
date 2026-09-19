@@ -76,7 +76,7 @@ flowchart TD
 - **Pipelines** - ML pipeline orchestration with inline or S3-based definitions
 - **Endpoints** - Real-time, serverless, and async inference endpoints
 - **Feature Store** - Online and offline feature storage
-- **Experiments** - Experiment tracking and trial components
+- **Experiments** - Experiment tracking (created via AWS CLI, as the AWS provider has no experiment resource; needs `aws` and `bash` where Terraform runs)
 - **Model Monitoring** - Data quality and model quality monitoring schedules
 - **IAM** - Auto-provisioned execution roles with least-privilege policies
 

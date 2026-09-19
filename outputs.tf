@@ -70,7 +70,9 @@ output "feature_group_arns" {
 
 output "experiment_arns" {
   description = "Map of experiment ARNs."
-  value       = { for k, v in aws_sagemaker_experiment.this : k => v.arn }
+  value = {
+    for k, v in terraform_data.experiment : k => "arn:${data.aws_partition.current.partition}:sagemaker:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:experiment/${v.input.name}"
+  }
 }
 
 output "execution_role_arn" {
